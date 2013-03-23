@@ -222,12 +222,15 @@ bpred_dir_create (
       if (!pred_dir->config.two.l2table)
 	fatal("cannot allocate second level table");
 
+	  /* use 3-bit up-down saturating counters in the l2table (local PHT in Alpha 21264) */
       /* initialize counters to weakly this-or-that */
-      flipflop = 1;
+//      flipflop = 1;
+      flipflop = 3;
       for (cnt = 0; cnt < l2size; cnt++)
 	{
 	  pred_dir->config.two.l2table[cnt] = flipflop;
-	  flipflop = 3 - flipflop;
+//	  flipflop = 3 - flipflop;
+	  flipflop = 7 - flipflop;
 	}
 
       break;
@@ -589,7 +592,9 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
 	  dir_update_ptr->pmeta = meta;
 	  dir_update_ptr->dir.meta  = (*meta >= 2);
 	  dir_update_ptr->dir.bimod = (*bimod >= 2);
-	  dir_update_ptr->dir.twolev  = (*twolev >= 2);
+	  /* use 3-bit up-down saturating counters in the l2table (local PHT in Alpha 21264) */
+//	  dir_update_ptr->dir.twolev  = (*twolev >= 2);
+	  dir_update_ptr->dir.twolev  = (*twolev >= 4);
 	  if (*meta >= 2)
 	    {
 	      dir_update_ptr->pdir1 = twolev;
@@ -703,16 +708,38 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
   if (pbtb == NULL)
     {
       /* BTB miss -- just return a predicted direction */
-      return ((*(dir_update_ptr->pdir1) >= 2)
-	      ? /* taken */ 1
-	      : /* not taken */ 0);
+	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  {
+		/* use the 3-bit counter in twolev predictor as pdir1 */
+      	return ((*(dir_update_ptr->pdir1) >= 4)
+	  	    ? /* taken */ 1
+	  	    : /* not taken */ 0);
+	  }
+	  else
+	  {
+		/* use the 2-bit counter in bimodal predictor as pdir1 */
+      	return ((*(dir_update_ptr->pdir1) >= 2)
+	  	    ? /* taken */ 1
+	  	    : /* not taken */ 0);
+	  }
     }
   else
     {
       /* BTB hit, so return target if it's a predicted-taken branch */
-      return ((*(dir_update_ptr->pdir1) >= 2)
-	      ? /* taken */ pbtb->target
-	      : /* not taken */ 0);
+	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  {
+		/* use the 3-bit counter in twolev predictor as pdir1 */
+      	return ((*(dir_update_ptr->pdir1) >= 4)
+	  	    ? /* taken */ pbtb->target
+	  	    : /* not taken */ 0);
+	  }
+	  else
+	  {
+		/* use the 2-bit counter in bimodal predictor as pdir1 */
+      	return ((*(dir_update_ptr->pdir1) >= 2)
+	  	    ? /* taken */ pbtb->target
+	  	    : /* not taken */ 0);
+	  }
     }
 }
 
@@ -910,14 +937,25 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
    * and 'pbtb' is a possibly null pointer into the BTB (either to a 
    * matched-on entry or a victim which was LRU in its set)
    */
-
+  
+  /* use 3-bit up-down saturating counters in the l2table (local PHT in Alpha 21264) */
   /* update state (but not for jumps) */
   if (dir_update_ptr->pdir1)
     {
       if (taken)
 	{
-	  if (*dir_update_ptr->pdir1 < 3)
-	    ++*dir_update_ptr->pdir1;
+	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  {
+		/* use the 3-bit counter in twolev predictor as pdir1 */
+	  	if (*dir_update_ptr->pdir1 < 7)
+	  	  ++*dir_update_ptr->pdir1;
+	  }
+	  else
+	  {
+		/* use the 2-bit counter in bimodal predictor as pdir1 */
+	  	if (*dir_update_ptr->pdir1 < 3)
+	  	  ++*dir_update_ptr->pdir1;
+	  }
 	}
       else
 	{ /* not taken */
@@ -932,8 +970,18 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
     {
       if (taken)
 	{
-	  if (*dir_update_ptr->pdir2 < 3)
-	    ++*dir_update_ptr->pdir2;
+	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  {
+		/* use the 2-bit counter in bimodal predictor as pdir2 */
+	  	if (*dir_update_ptr->pdir2 < 3)
+	  	  ++*dir_update_ptr->pdir2;
+	  }
+	  else
+	  {
+		/* use the 3-bit counter in twolev predictor as pdir2 */
+	  	if (*dir_update_ptr->pdir2 < 7)
+	  	  ++*dir_update_ptr->pdir2;
+	  }
 	}
       else
 	{ /* not taken */
