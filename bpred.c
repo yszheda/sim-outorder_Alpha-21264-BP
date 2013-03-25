@@ -93,6 +93,7 @@ bpred_create(enum bpred_class class,	/* type of predictor to create */
       bpred_dir_create(BPred2Level, l1size, l2size, shift_width, xor);
 
     /* metapredictor component */
+	/* meta predictor uses the same class as bimodal/global predictor */
     pred->dirpred.meta = 
       bpred_dir_create(BPred2bit, meta_size, 0, 0, 0);
 
@@ -490,6 +491,13 @@ bpred_after_priming(struct bpred_t *bpred)
   ((((ADDR) >> 19) ^ ((ADDR) >> MD_BR_SHIFT)) & ((PRED)->config.bimod.size-1))
     /* was: ((baddr >> 16) ^ baddr) & (pred->dirpred.bimod.size-1) */
 
+/* the width of global branch history register */
+#define BHIST_REG_WIDTH 12
+/* global branch history register */
+int global_bhist_reg = 0;
+/* use global branch history to index global and meta predictor */
+#define GLOBAL_META_INDEX (global_bhist_reg & ((1 << BHIST_REG_WIDTH) - 1))
+
 /* predicts a branch direction */
 char *						/* pointer to counter */
 bpred_dir_lookup(struct bpred_dir_t *pred_dir,	/* branch dir predictor inst */
@@ -534,7 +542,10 @@ bpred_dir_lookup(struct bpred_dir_t *pred_dir,	/* branch dir predictor inst */
       }
       break;
     case BPred2bit:
-      p = &pred_dir->config.bimod.table[BIMOD_HASH(pred_dir, baddr)];
+//      p = &pred_dir->config.bimod.table[BIMOD_HASH(pred_dir, baddr)];      
+      /* use global branch history to index global and meta predictor */
+	  /* NOTE: meta predictor also uses BPred2bit as its class */
+      p = &pred_dir->config.bimod.table[GLOBAL_META_INDEX];
       break;
     case BPredTaken:
     case BPredNotTaken:
@@ -866,6 +877,10 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
       pred->dirpred.twolev->config.two.shiftregs[l1index] =
 	shift_reg & ((1 << pred->dirpred.twolev->config.two.shift_width) - 1);
     }
+
+  /* update global branch history */
+  global_bhist_reg = (global_bhist_reg << 1) | (!!taken);
+  global_bhist_reg = global_bhist_reg & ((1 << BHIST_REG_WIDTH) - 1);
 
   /* find BTB entry if it's a taken branch (don't allocate for non-taken) */
   if (taken)
