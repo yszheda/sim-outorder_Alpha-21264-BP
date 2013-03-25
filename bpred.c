@@ -708,7 +708,7 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
   if (pbtb == NULL)
     {
       /* BTB miss -- just return a predicted direction */
-	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  if (dir_update_ptr->pmeta != NULL && *(dir_update_ptr->pmeta) >= 2 )
 	  {
 		/* use the 3-bit counter in twolev predictor as pdir1 */
       	return ((*(dir_update_ptr->pdir1) >= 4)
@@ -726,7 +726,7 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
   else
     {
       /* BTB hit, so return target if it's a predicted-taken branch */
-	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  if (dir_update_ptr->pmeta != NULL && *(dir_update_ptr->pmeta) >= 2 )
 	  {
 		/* use the 3-bit counter in twolev predictor as pdir1 */
       	return ((*(dir_update_ptr->pdir1) >= 4)
@@ -944,7 +944,7 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
     {
       if (taken)
 	{
-	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  if ( dir_update_ptr->pmeta != NULL && *(dir_update_ptr->pmeta) >= 2 )
 	  {
 		/* use the 3-bit counter in twolev predictor as pdir1 */
 	  	if (*dir_update_ptr->pdir1 < 7)
@@ -970,16 +970,16 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
     {
       if (taken)
 	{
-	  if (*(dir_update_ptr->pmeta) >= 2 )
+	  if ( dir_update_ptr->pmeta != NULL && *(dir_update_ptr->pmeta) < 2 )
 	  {
-		/* use the 2-bit counter in bimodal predictor as pdir2 */
-	  	if (*dir_update_ptr->pdir2 < 3)
+		/* use the 3-bit counter in twolev predictor as pdir2 */
+	  	if (*dir_update_ptr->pdir2 < 7)
 	  	  ++*dir_update_ptr->pdir2;
 	  }
 	  else
 	  {
-		/* use the 3-bit counter in twolev predictor as pdir2 */
-	  	if (*dir_update_ptr->pdir2 < 7)
+		/* use the 2-bit counter in bimodal predictor as pdir2 */
+	  	if (*dir_update_ptr->pdir2 < 3)
 	  	  ++*dir_update_ptr->pdir2;
 	  }
 	}
