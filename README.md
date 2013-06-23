@@ -1,4 +1,4 @@
-SimpleScalar sim-outorder simulator with PLRU policy cache
+SimpleScalar sim-outorder simulator with Alpha 21264 Branch Predictor 
 ===
 
 We implement the 
