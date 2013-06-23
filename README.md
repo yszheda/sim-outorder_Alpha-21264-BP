@@ -4,6 +4,7 @@ SimpleScalar sim-outorder simulator with PLRU policy cache
 We implement the 
 **Alpha 21264 tournament branch predictor** 
  as illustrated in ![Figure 1][alpha-bp]
+
 in the _SimpleScalar_(http://www.simplescalar.com/) sim-outorder simulator.
 
 - The current Simplscalar uses 2-bit up-down saturating
